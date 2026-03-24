@@ -22,7 +22,8 @@ from vanna.legacy.chromadb import ChromaDB_VectorStore
 SCRIPT_DIR = Path(__file__).parent
 DATA_FILE   = SCRIPT_DIR / "finetuning/inference/mini_dev_prompt.jsonl"
 DB_BASE_DIR = SCRIPT_DIR / "llm/mini_dev_data/minidev/MINIDEV/dev_databases"
-CHROMA_ROOT = SCRIPT_DIR / ".vanna_chroma_per_db"   # DB별 분리 저장소
+_chroma_override = os.environ.get("CHROMA_ROOT_OVERRIDE")
+CHROMA_ROOT = Path(_chroma_override) if _chroma_override else SCRIPT_DIR / ".vanna_chroma_per_db"
 
 DB_LIST = [
     "california_schools",
@@ -304,7 +305,11 @@ def execute():
 
 # ─── 메인 ─────────────────────────────────────────────────────────────────────
 
-if __name__ == "__main__":
+def create_app():
     init_vanna_per_db()
+    return app
+
+if __name__ == "__main__":
+    create_app()
     print("서버 시작: http://localhost:5001\n")
     app.run(debug=False, port=5001)
