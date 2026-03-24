@@ -8,7 +8,9 @@
 .vanna_chroma/
 # .vanna_chroma_per_db/  ← Vercel 배포를 위해 포함
 
-# 대용량 데이터
-llm/mini_dev_data/minidev/
+# 대용량 데이터 (3개만 제외, 나머지 8개는 Vercel 배포용으로 포함)
+llm/mini_dev_data/minidev/MINIDEV/dev_databases/european_football_2/
+llm/mini_dev_data/minidev/MINIDEV/dev_databases/codebase_community/
+llm/mini_dev_data/minidev/MINIDEV/dev_databases/card_games/
 llm/mini_dev_data/*.zip
 .vercel
