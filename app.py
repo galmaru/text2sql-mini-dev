@@ -16,6 +16,7 @@ load_dotenv(Path(__file__).parent / ".env")
 from flask import Flask, jsonify, render_template, request
 from vanna.legacy.openai import OpenAI_Chat
 from vanna.legacy.chromadb import ChromaDB_VectorStore
+from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 
 # ─── 설정 ─────────────────────────────────────────────────────────────────────
 
@@ -148,10 +149,13 @@ vn_instances: dict[str, BirdVanna] = {}
 
 def make_vanna(db_id: str, api_key: str) -> BirdVanna:
     chroma_path = CHROMA_ROOT / db_id
+    # ONNX 로컬 모델 다운로드 없이 OpenAI 임베딩 API 사용
+    ef = OpenAIEmbeddingFunction(api_key=api_key, model_name="text-embedding-3-small")
     return BirdVanna(config={
         "api_key": api_key,
         "model": "gpt-4o",
         "path": str(chroma_path),
+        "embedding_function": ef,
     })
 
 
