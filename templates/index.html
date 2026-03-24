@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Text2SQL — Bird-SQL mini_dev</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .container { max-width: 900px; margin: 0 auto; }
+
+    header { margin-bottom: 32px; }
+    header h1 { font-size: 1.6rem; font-weight: 700; color: #fff; }
+    header p  { font-size: 0.875rem; color: #718096; margin-top: 4px; }
+
+    /* ─── 입력 패널 ─── */
+    .input-panel {
+      background: #1a1d27;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .row { display: flex; gap: 12px; margin-bottom: 16px; align-items: flex-start; }
+
+    label { display: block; font-size: 0.8rem; color: #a0aec0; margin-bottom: 6px; }
+
+    select {
+      background: #2d3748;
+      border: 1px solid #4a5568;
+      color: #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.875rem;
+      cursor: pointer;
+      min-width: 220px;
+    }
+    select:focus { outline: none; border-color: #667eea; }
+
+    .db-badge {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+    .badge-on  { background: #48bb78; }
+    .badge-off { background: #fc8181; }
+
+    textarea {
+      width: 100%;
+      background: #2d3748;
+      border: 1px solid #4a5568;
+      color: #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 0.95rem;
+      resize: vertical;
+      min-height: 80px;
+      line-height: 1.5;
+      transition: border-color 0.15s;
+    }
+    textarea:focus { outline: none; border-color: #667eea; }
+    textarea::placeholder { color: #4a5568; }
+
+    .btn-generate {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 28px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      white-space: nowrap;
+    }
+    .btn-generate:hover   { opacity: 0.9; }
+    .btn-generate:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ─── SQL 패널 ─── */
+    .sql-panel {
+      background: #1a1d27;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+      display: none;
+    }
+    .sql-panel.visible { display: block; }
+
+    .panel-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #a0aec0;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .panel-title .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #667eea;
+    }
+
+    .sql-editor {
+      background: #0f1117;
+      border: 1px solid #2d3748;
+      border-radius: 8px;
+      padding: 14px;
+      font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+      font-size: 0.875rem;
+      color: #e2e8f0;
+      width: 100%;
+      min-height: 100px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+    .sql-editor:focus { outline: none; border-color: #667eea; }
+
+    .sql-actions { display: flex; gap: 8px; margin-top: 10px; justify-content: flex-end; }
+
+    .btn-run {
+      background: #2d3748;
+      color: #e2e8f0;
+      border: 1px solid #4a5568;
+      border-radius: 6px;
+      padding: 8px 18px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-run:hover { background: #4a5568; }
+    .btn-run:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ─── 결과 패널 ─── */
+    .result-panel {
+      background: #1a1d27;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      padding: 20px;
+      display: none;
+    }
+    .result-panel.visible { display: block; }
+
+    /* ─── 히스토리 패널 ─── */
+    .history-panel {
+      background: #1a1d27;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      overflow: hidden;
+      display: none;
+    }
+    .history-panel.visible { display: block; }
+
+    .history-toggle {
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      color: #a0aec0;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .history-toggle:hover { background: #1e2433; }
+    .history-toggle .left  { display: flex; align-items: center; gap: 8px; }
+    .history-toggle .arrow { transition: transform 0.2s; font-size: 0.75rem; }
+    .history-toggle.open .arrow { transform: rotate(180deg); }
+
+    .history-body { display: none; padding: 0 20px 20px; }
+    .history-body.open { display: block; }
+
+    .msg-item {
+      margin-bottom: 12px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #2d3748;
+    }
+    .msg-header {
+      padding: 8px 14px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .msg-role-system    { background: #2a2040; color: #b794f4; }
+    .msg-role-user      { background: #1a2a40; color: #63b3ed; }
+    .msg-role-assistant { background: #1a2a1a; color: #68d391; }
+    .msg-role-final     { background: #2a3a1a; color: #9ae6b4; }
+
+    /* ─── RAG 섹션 ─── */
+    .rag-section {
+      margin-bottom: 16px;
+      border: 1px solid #2d3748;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .rag-section-title {
+      background: #1e2030;
+      padding: 8px 14px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #76e4f7;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .rag-count {
+      background: #2d4a52;
+      color: #76e4f7;
+      border-radius: 10px;
+      padding: 1px 7px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+    .rag-item {
+      border-top: 1px solid #2d3748;
+      padding: 10px 14px;
+      background: #0f1117;
+    }
+    .rag-item-label {
+      font-size: 0.7rem;
+      color: #718096;
+      margin-bottom: 4px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+    .rag-item-content {
+      font-size: 0.78rem;
+      font-family: "JetBrains Mono", "Fira Code", monospace;
+      color: #cbd5e0;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+    .rag-empty {
+      padding: 10px 14px;
+      font-size: 0.78rem;
+      color: #4a5568;
+      background: #0f1117;
+      font-style: italic;
+    }
+    .history-divider {
+      font-size: 0.72rem;
+      color: #4a5568;
+      text-align: center;
+      margin: 12px 0;
+      letter-spacing: 0.08em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .history-divider::before, .history-divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: #2d3748;
+    }
+
+    /* ─── 유사도 배지 ─── */
+    .score-badge {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 10px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+    .score-high   { background: #1a3a1a; color: #68d391; border: 1px solid #2f6e2f; }
+    .score-medium { background: #3a3010; color: #f6ad55; border: 1px solid #7a6020; }
+    .score-low    { background: #3a2010; color: #fc8181; border: 1px solid #7a3020; }
+
+    /* ─── 모달 ─── */
+    .expand-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .expand-modal.open { display: flex; }
+    .expand-modal-box {
+      background: #1a1d27;
+      border: 1px solid #4a5568;
+      border-radius: 12px;
+      max-width: 820px;
+      width: 100%;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .expand-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 1px solid #2d3748;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #a0aec0;
+    }
+    .expand-modal-close {
+      background: none;
+      border: 1px solid #4a5568;
+      color: #a0aec0;
+      border-radius: 6px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .expand-modal-close:hover { background: #2d3748; color: #e2e8f0; }
+    .expand-modal-content {
+      padding: 18px;
+      overflow-y: auto;
+      font-size: 0.82rem;
+      font-family: "JetBrains Mono", "Fira Code", monospace;
+      color: #cbd5e0;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+      flex: 1;
+    }
+    .rag-expand-btn {
+      background: none;
+      border: 1px solid #4a5568;
+      color: #718096;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 0.7rem;
+      cursor: pointer;
+      margin-left: 8px;
+    }
+    .rag-expand-btn:hover { color: #e2e8f0; border-color: #667eea; }
+
+    .msg-content {
+      padding: 12px 14px;
+      font-size: 0.8rem;
+      font-family: "JetBrains Mono", "Fira Code", monospace;
+      color: #cbd5e0;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #0f1117;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .msg-content.collapsed {
+      max-height: 80px;
+      overflow: hidden;
+      position: relative;
+    }
+    .msg-content.collapsed::after {
+      content: "";
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 40px;
+      background: linear-gradient(transparent, #0f1117);
+    }
+    .expand-btn {
+      display: block;
+      width: 100%;
+      padding: 6px;
+      background: #1a1d27;
+      border: none;
+      border-top: 1px solid #2d3748;
+      color: #718096;
+      font-size: 0.75rem;
+      cursor: pointer;
+      text-align: center;
+    }
+    .expand-btn:hover { color: #a0aec0; background: #1e2433; }
+
+    .error-msg {
+      background: #2d1a1a;
+      border: 1px solid #fc8181;
+      border-radius: 8px;
+      padding: 12px;
+      color: #fc8181;
+      font-size: 0.875rem;
+      font-family: monospace;
+    }
+
+    .no-db-msg {
+      background: #2d2a1a;
+      border: 1px solid #f6ad55;
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: #f6ad55;
+      font-size: 0.875rem;
+    }
+    .no-db-msg a { color: #f6ad55; }
+
+    .result-meta {
+      font-size: 0.8rem;
+      color: #718096;
+      margin-bottom: 10px;
+    }
+    .result-meta strong { color: #a0aec0; }
+
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    thead tr { background: #2d3748; }
+    thead th {
+      text-align: left;
+      padding: 10px 12px;
+      color: #a0aec0;
+      font-weight: 600;
+      border-bottom: 1px solid #4a5568;
+      white-space: nowrap;
+    }
+    tbody tr { border-bottom: 1px solid #1e2433; transition: background 0.1s; }
+    tbody tr:hover { background: #1e2433; }
+    tbody td {
+      padding: 9px 12px;
+      color: #cbd5e0;
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .null-val { color: #4a5568; font-style: italic; }
+
+    /* ─── 로딩 스피너 ─── */
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 0.7s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── 예제 질문 ─── */
+    .examples { margin-top: 16px; }
+    .examples-label { font-size: 0.78rem; color: #718096; margin-bottom: 10px; }
+    .difficulty-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+    .diff-badge {
+      flex-shrink: 0;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-top: 2px;
+    }
+    .diff-easy   { background: #1a3a1a; color: #68d391; border: 1px solid #2f6e2f; }
+    .diff-medium { background: #3a3010; color: #f6ad55; border: 1px solid #7a6020; }
+    .diff-hard   { background: #3a1010; color: #fc8181; border: 1px solid #7a2020; }
+    .diff-chips  { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      background: #2d3748;
+      border: 1px solid #4a5568;
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 0.78rem;
+      color: #a0aec0;
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .chip:hover { background: #4a5568; color: #e2e8f0; border-color: #667eea; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>Text2SQL — Bird-SQL mini_dev</h1>
+    <p>한국어 또는 영어로 질문하면 SQL을 생성하고 실행합니다</p>
+  </header>
+
+  <!-- 입력 패널 -->
+  <div class="input-panel">
+    <div class="row">
+      <div>
+        <label>데이터베이스 선택</label>
+        <select id="dbSelect">
+          {% for db in db_list %}
+          <option value="{{ db }}">
+            {{ db }}{% if db_status[db] %} ●{% else %} ○{% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px">
+      <label>질문 입력 (한국어 / 영어)</label>
+      <textarea id="question" placeholder="예: EUR로 결제하는 고객과 CZK로 결제하는 고객의 비율은?"></textarea>
+    </div>
+
+    <div style="display:flex; justify-content:flex-start; align-items:center; gap:12px; margin-bottom:16px">
+      <button class="btn-generate" id="generateBtn" onclick="generate()">SQL 생성</button>
+    </div>
+    <div class="examples">
+      <div class="examples-label">예제 질문</div>
+      <div id="exampleChips"></div>
+    </div>
+  </div>
+
+  <!-- SQL 패널 -->
+  <div class="sql-panel" id="sqlPanel">
+    <div class="panel-title"><span class="dot"></span>생성된 SQL</div>
+    <textarea class="sql-editor" id="sqlEditor"></textarea>
+    <div class="sql-actions">
+      <button class="btn-run" id="runBtn" onclick="runSql()">직접 실행</button>
+    </div>
+  </div>
+
+  <!-- 결과 패널 -->
+  <div class="result-panel" id="resultPanel">
+    <div class="panel-title"><span class="dot" style="background:#48bb78"></span>실행 결과</div>
+    <div id="resultContent"></div>
+  </div>
+
+  <!-- 추론 히스토리 패널 -->
+  <div class="history-panel" id="historyPanel">
+    <button class="history-toggle" id="historyToggle" onclick="toggleHistory()">
+      <span class="left">
+        <span class="dot" style="background:#f6ad55;width:8px;height:8px;border-radius:50%;display:inline-block"></span>
+        LLM 추론 과정 (History)
+      </span>
+      <span class="arrow">▼</span>
+    </button>
+    <div class="history-body" id="historyBody"></div>
+  </div>
+
+</div>
+
+<!-- 전체보기 모달 -->
+<div class="expand-modal" id="expandModal" onclick="closeModal()">
+  <div class="expand-modal-box" onclick="event.stopPropagation()">
+    <div class="expand-modal-header">
+      <span id="expandModalTitle">전체 내용</span>
+      <button class="expand-modal-close" onclick="closeModal()">✕ 닫기</button>
+    </div>
+    <div class="expand-modal-content" id="expandModalContent"></div>
+  </div>
+</div>
+
+<script>
+  // ─── DB별 예제 질문 ───────────────────────────────────────────────────────
+  const EXAMPLES = {
+    california_schools: {
+      easy: [
+        "전체 학교 수는?",
+        "Active 상태인 학교 목록을 보여줘",
+        "카운티별 학교 수를 내림차순으로 보여줘",
+      ],
+      medium: [
+        "SAT 수학 평균 점수가 가장 높은 학교 TOP 5는?",
+        "무료 급식 비율이 50% 이상인 학교 수는?",
+        "각 카운티의 평균 SAT 읽기 점수를 보여줘",
+      ],
+      hard: [
+        "무료 급식 비율이 높을수록 SAT 점수가 낮은지 학교별로 비교해줘",
+        "차터 스쿨과 일반 학교의 평균 SAT 총점 차이는?",
+        "SAT 점수 상위 10% 학교들의 평균 무료 급식 비율은?",
+      ],
+    },
+    card_games: {
+      easy: [
+        "전체 카드 수는?",
+        "세트(set) 종류별 카드 수를 보여줘",
+        "가장 오래된 세트의 이름은?",
+      ],
+      medium: [
+        "색깔별 카드 수를 내림차순으로 보여줘",
+        "레어리티(rarity)별 평균 전환 비용(convertedManaCost)은?",
+        "가장 많은 카드를 보유한 세트 TOP 5는?",
+      ],
+      hard: [
+        "Standard 포맷에서 사용 가능한 카드 수를 세트별로 보여줘",
+        "번역본이 있는 카드와 없는 카드의 수를 비교해줘",
+        "각 세트에서 가장 많이 등장하는 카드 타입은?",
+      ],
+    },
+    codebase_community: {
+      easy: [
+        "전체 사용자 수는?",
+        "가장 많은 조회수를 기록한 게시글 TOP 5는?",
+        "태그별 사용 횟수를 내림차순으로 보여줘",
+      ],
+      medium: [
+        "가장 많은 배지를 받은 사용자 TOP 5는?",
+        "답변 수가 가장 많은 질문 TOP 3는?",
+        "월별 게시글 작성 수 추이를 보여줘",
+      ],
+      hard: [
+        "평판(Reputation)이 높은 사용자일수록 UpVotes가 많은지 상위 20명을 비교해줘",
+        "질문에 달린 댓글 수와 답변 수의 상관관계를 보여줘",
+        "가장 많은 즐겨찾기를 받은 태그 TOP 5와 각 태그의 평균 점수는?",
+      ],
+    },
+    debit_card_specializing: {
+      easy: [
+        "전체 고객 수는?",
+        "EUR로 결제하는 고객 수는?",
+        "가스 스테이션 국가별 수를 보여줘",
+      ],
+      medium: [
+        "EUR로 결제하는 고객과 CZK로 결제하는 고객의 비율은?",
+        "2013년 SME 세그먼트 고객들의 월 평균 소비량은?",
+        "CZK로 결제한 고객들의 소비량이 가장 많았던 연도는?",
+      ],
+      hard: [
+        "2012년에 CZK 결제 고객과 EUR 결제 고객의 가스 소비량 차이는?",
+        "세그먼트별, 연도별 평균 소비량 추이를 보여줘",
+        "소비량 상위 10% 고객들이 주로 사용하는 통화는?",
+      ],
+    },
+    european_football_2: {
+      easy: [
+        "리그 목록을 보여줘",
+        "전체 선수 수는?",
+        "팀 수를 국가별로 보여줘",
+      ],
+      medium: [
+        "홈팀이 이긴 경기 수와 원정팀이 이긴 경기 수를 비교해줘",
+        "평균 전체 레이팅이 가장 높은 선수 TOP 5는?",
+        "리그별 경기당 평균 총 득점은?",
+      ],
+      hard: [
+        "시즌별 홈팀 승률 추이를 리그별로 보여줘",
+        "전체 레이팅 상위 50명 선수들의 포지션 선호도(왼발/오른발) 비율은?",
+        "빌드업 스피드가 가장 높은 팀과 가장 낮은 팀의 평균 득점 차이는?",
+      ],
+    },
+    financial: {
+      easy: [
+        "전체 고객 수는?",
+        "gold 카드를 가진 고객 수는?",
+        "대출 상태(status)별 건수를 보여줘",
+      ],
+      medium: [
+        "여성 고객과 남성 고객의 평균 대출 금액을 비교해줘",
+        "대출 금액 상위 5개 계좌와 해당 지역을 보여줘",
+        "카드 종류별 고객 수와 평균 거래 금액을 보여줘",
+      ],
+      hard: [
+        "지역별 대출 상환 중(status=A) 고객 비율과 평균 급여를 함께 보여줘",
+        "거래가 가장 활발한 계좌 TOP 3의 월별 거래 금액 추이는?",
+        "대출을 받은 고객과 받지 않은 고객의 평균 거래 횟수와 총 거래 금액 차이는?",
+      ],
+    },
+    formula_1: {
+      easy: [
+        "전체 드라이버 수는?",
+        "서킷 국가별 수를 보여줘",
+        "2010년 이후 열린 레이스 수는?",
+      ],
+      medium: [
+        "가장 많은 우승을 기록한 드라이버 TOP 5는?",
+        "컨스트럭터별 총 포인트를 내림차순으로 보여줘",
+        "가장 많은 레이스가 열린 서킷 TOP 5는?",
+      ],
+      hard: [
+        "시즌별 우승 드라이버와 해당 컨스트럭터를 함께 보여줘",
+        "출발 그리드 순위와 최종 순위의 차이가 가장 큰 드라이버는?",
+        "피트스톱 횟수가 가장 적은 우승 레이스의 드라이버와 소요 시간은?",
+      ],
+    },
+    student_club: {
+      easy: [
+        "전체 회원 수는?",
+        "이벤트 유형별 개최 수를 보여줘",
+        "전공별 회원 수를 내림차순으로 보여줘",
+      ],
+      medium: [
+        "이벤트별 참석자 수를 보여줘",
+        "가장 많은 지출이 발생한 카테고리 TOP 3는?",
+        "회원별 총 지출 금액 상위 5명은?",
+      ],
+      hard: [
+        "이벤트별 예산 대비 실제 지출 비율을 보여줘",
+        "회비(Dues) 수입이 가장 많은 달과 해당 금액은?",
+        "가장 많이 참석한 회원의 전공과 이벤트 참석 목록을 보여줘",
+      ],
+    },
+    superhero: {
+      easy: [
+        "전체 슈퍼히어로 수는?",
+        "Marvel Comics에서 출판된 슈퍼히어로 수는?",
+        "성별(gender)별 슈퍼히어로 수를 보여줘",
+      ],
+      medium: [
+        "가장 키가 큰 슈퍼히어로 TOP 5와 출판사를 보여줘",
+        "선한(Good) 성향과 악한(Bad) 성향 슈퍼히어로의 평균 몸무게를 비교해줘",
+        "가장 많은 능력(superpower)을 가진 슈퍼히어로 TOP 5는?",
+      ],
+      hard: [
+        "출판사별 평균 키, 몸무게, 능력 수를 비교해줘",
+        "인종(race)별 평균 Intelligence 수치가 가장 높은 TOP 3는?",
+        "눈 색깔과 머리 색깔 조합 중 가장 많은 슈퍼히어로 조합은?",
+      ],
+    },
+    thrombosis_prediction: {
+      easy: [
+        "전체 환자 수는?",
+        "성별(SEX)별 환자 수를 보여줘",
+        "진단(Diagnosis)별 환자 수를 내림차순으로 보여줘",
+      ],
+      medium: [
+        "혈전증(Thrombosis) 양성 환자 수와 음성 환자 수를 비교해줘",
+        "검사 항목별 평균값을 보여줘",
+        "연도별 신규 환자 수 추이를 보여줘",
+      ],
+      hard: [
+        "혈전증 양성 환자와 음성 환자의 평균 검사 수치 차이를 항목별로 비교해줘",
+        "나이대별(10세 단위) 혈전증 발생 비율을 보여줘",
+        "가장 많은 검사를 받은 환자 TOP 5와 해당 환자의 진단명은?",
+      ],
+    },
+    toxicology: {
+      easy: [
+        "전체 분자 수는?",
+        "독성(+) 분자와 비독성(-) 분자 수를 비교해줘",
+        "가장 많이 사용된 원소(element) TOP 5는?",
+      ],
+      medium: [
+        "원소별 평균 결합 수(bond count)를 보여줘",
+        "독성 분자에서만 나타나는 원소는?",
+        "단일 결합(-)과 이중 결합(=) 비율을 비교해줘",
+      ],
+      hard: [
+        "독성 분자와 비독성 분자의 평균 원자 수와 결합 수를 비교해줘",
+        "가장 복잡한 구조(원자 수 기준)를 가진 분자 TOP 5와 독성 여부는?",
+        "탄소(c) 원자 비율이 높은 분자일수록 독성일 확률이 높은지 분석해줘",
+      ],
+    },
+  };
+
+  const dbSelect = document.getElementById("dbSelect");
+  const questionEl = document.getElementById("question");
+
+  const DIFF_META = [
+    { key: "easy",   label: "쉬움",   cls: "diff-easy"   },
+    { key: "medium", label: "중간",   cls: "diff-medium" },
+    { key: "hard",   label: "어려움", cls: "diff-hard"   },
+  ];
+
+  function updateExamples() {
+    const db = dbSelect.value;
+    const container = document.getElementById("exampleChips");
+    const data = EXAMPLES[db];
+    container.innerHTML = "";
+    if (!data) return;
+
+    DIFF_META.forEach(({ key, label, cls }) => {
+      const questions = data[key] || [];
+      if (!questions.length) return;
+
+      const row = document.createElement("div");
+      row.className = "difficulty-row";
+
+      const badge = document.createElement("span");
+      badge.className = `diff-badge ${cls}`;
+      badge.textContent = label;
+      row.appendChild(badge);
+
+      const chipsWrap = document.createElement("div");
+      chipsWrap.className = "diff-chips";
+      questions.forEach(q => {
+        const chip = document.createElement("span");
+        chip.className = "chip";
+        chip.textContent = q;
+        chip.onclick = () => { questionEl.value = q; questionEl.focus(); };
+        chipsWrap.appendChild(chip);
+      });
+      row.appendChild(chipsWrap);
+      container.appendChild(row);
+    });
+  }
+
+  dbSelect.addEventListener("change", updateExamples);
+  updateExamples();
+
+  // ─── SQL 생성 ─────────────────────────────────────────────────────────────
+  async function generate() {
+    const question = questionEl.value.trim();
+    const db_id = dbSelect.value;
+    if (!question) { questionEl.focus(); return; }
+
+    const btn = document.getElementById("generateBtn");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>SQL 생성 중...';
+
+    hidePanels();
+
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question, db_id }),
+      });
+      const data = await res.json();
+
+      if (data.error) {
+        // SQL 생성 불가 메시지는 안내로 표시 (SQL 패널 숨김)
+        showInfoMessage(data.error);
+        return;
+      }
+
+      showSql(data.sql);
+      showResult(data.result, data.exec_error);
+      if (data.history) showHistory(data.history, data.rag);
+
+    } catch(e) {
+      showResult(null, "요청 오류: " + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "SQL 생성";
+    }
+  }
+
+  // ─── 직접 실행 ────────────────────────────────────────────────────────────
+  async function runSql() {
+    const sql = document.getElementById("sqlEditor").value.trim();
+    const db_id = dbSelect.value;
+    if (!sql) return;
+
+    const btn = document.getElementById("runBtn");
+    btn.disabled = true;
+    btn.textContent = "실행 중...";
+
+    try {
+      const res = await fetch("/api/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sql, db_id }),
+      });
+      const data = await res.json();
+      showResult(data.result, data.exec_error);
+    } catch(e) {
+      showResult(null, "요청 오류: " + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "직접 실행";
+    }
+  }
+
+  // ─── UI 헬퍼 ─────────────────────────────────────────────────────────────
+  function hidePanels() {
+    document.getElementById("sqlPanel").classList.remove("visible");
+    document.getElementById("resultPanel").classList.remove("visible");
+    document.getElementById("historyPanel").classList.remove("visible");
+  }
+
+  function showInfoMessage(msg) {
+    // LLM이 SQL을 생성할 수 없을 때 — 안내 메시지만 표시
+    const panel = document.getElementById("resultPanel");
+    const content = document.getElementById("resultContent");
+    panel.classList.add("visible");
+    // "SQL을 생성할 수 없습니다: " 접두어 제거 후 LLM 메시지만 표시
+    const llmMsg = msg.replace(/^SQL을 생성할 수 없습니다:\s*/, "");
+    content.innerHTML = `
+      <div style="background:#1e2433;border:1px solid #4a5568;border-radius:8px;padding:14px 16px;">
+        <div style="font-size:0.8rem;color:#a0aec0;margin-bottom:8px;">💬 LLM 응답</div>
+        <div style="font-size:0.9rem;color:#cbd5e0;line-height:1.6;">${escHtml(llmMsg)}</div>
+      </div>`;
+  }
+
+  function showSql(sql) {
+    document.getElementById("sqlEditor").value = sql;
+    document.getElementById("sqlPanel").classList.add("visible");
+  }
+
+  function showResult(result, error) {
+    const panel = document.getElementById("resultPanel");
+    const content = document.getElementById("resultContent");
+    panel.classList.add("visible");
+
+    if (error && error.includes("DB 파일 없음")) {
+      content.innerHTML = `
+        <div class="no-db-msg">
+          ⚠️ <strong>DB 파일이 없어 실행할 수 없습니다.</strong><br>
+          <small style="margin-top:6px;display:block">
+            minidev.zip을 다운로드 후
+            <code>llm/mini_dev_data/</code> 폴더에 압축을 해제하세요.<br>
+            SQL은 정상 생성되었습니다.
+          </small>
+        </div>`;
+      return;
+    }
+
+    if (error) {
+      content.innerHTML = `<div class="error-msg">오류: ${escHtml(error)}</div>`;
+      return;
+    }
+
+    if (!result) {
+      content.innerHTML = `<div class="error-msg">결과 없음</div>`;
+      return;
+    }
+
+    const { columns, rows } = result;
+    const truncated = rows.length === 100;
+    const meta = `<div class="result-meta"><strong>${rows.length}행</strong> 반환${truncated ? " (최대 100행)" : ""}</div>`;
+
+    if (rows.length === 0) {
+      content.innerHTML = meta + `<div style="color:#718096;font-size:0.875rem">결과 없음 (0행)</div>`;
+      return;
+    }
+
+    let html = meta + `<div class="table-wrap"><table><thead><tr>`;
+    columns.forEach(c => { html += `<th>${escHtml(c)}</th>`; });
+    html += `</tr></thead><tbody>`;
+    rows.forEach(row => {
+      html += `<tr>`;
+      row.forEach(cell => {
+        const val = cell === null
+          ? `<span class="null-val">NULL</span>`
+          : escHtml(String(cell));
+        html += `<td title="${cell === null ? "NULL" : escHtml(String(cell))}">${val}</td>`;
+      });
+      html += `</tr>`;
+    });
+    html += `</tbody></table></div>`;
+    content.innerHTML = html;
+  }
+
+  // ─── 히스토리 ──────────────────────────────────────────────────────────────
+  function toggleHistory() {
+    const toggle = document.getElementById("historyToggle");
+    const body   = document.getElementById("historyBody");
+    const isOpen = body.classList.contains("open");
+    body.classList.toggle("open", !isOpen);
+    toggle.classList.toggle("open", !isOpen);
+  }
+
+  // ─── 유사도 거리 → 퍼센트 변환 ────────────────────────────────────────────
+  // ChromaDB 거리: 0=동일, 1=무관(직교), >1=반대 방향
+  // dist <= 1 : (1 - dist)*100 로 0~100% 표시
+  // dist >  1 : 임계값 초과 — 실질적으로 무관한 항목이지만 top-N에 포함된 것
+  function distToScore(dist) {
+    return Math.max(0, Math.round((1 - dist) * 100));
+  }
+  function scoreBadge(dist) {
+    if (dist === undefined || dist === null) return "";
+    const pct  = distToScore(dist);
+    const over = dist > 1.0;
+    const cls  = over || pct < 20 ? "score-low" : pct >= 60 ? "score-high" : "score-medium";
+    const label = over
+      ? `낮은관련성 (거리 ${dist.toFixed(2)})`
+      : `${pct}% 일치`;
+    return `<span class="score-badge ${cls}">${label}</span>`;
+  }
+
+  function whySelected(dist, n) {
+    if (dist === undefined || dist === null)
+      return "벡터 유사도 기반 선택";
+    if (dist > 1.0)
+      return `⚠️ 임계값 초과(거리 ${dist.toFixed(2)}) — 유사한 스키마 부족으로 top-${n}에 포함됨`;
+    const pct = distToScore(dist);
+    if (pct >= 60) return `✅ 질문과 ${pct}% 유사 — 높은 관련성으로 선택됨`;
+    if (pct >= 30) return `🔶 질문과 ${pct}% 유사 — 부분 관련성으로 선택됨`;
+    return `⚠️ 질문과 ${pct}% 유사 — 관련 스키마 부족으로 top-N에 포함됨`;
+  }
+
+  // DDL에서 테이블명 추출
+  function extractTableName(ddl) {
+    const m = ddl.match(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?["'`]?(\w+)["'`]?/i);
+    return m ? m[1] : null;
+  }
+
+  function showHistory(history, rag) {
+    const panel = document.getElementById("historyPanel");
+    const body  = document.getElementById("historyBody");
+    const toggle = document.getElementById("historyToggle");
+
+    let html = "";
+
+    // ── RAG 검색 결과 섹션 ──
+    const ddlList   = (rag && rag.ddl)              || [];
+    const ddlScores = (rag && rag.ddl_scores)       || [];
+    const sqList    = (rag && rag.similar_questions) || [];
+    const sqScores  = (rag && rag.sq_scores)        || [];
+    const docList   = (rag && rag.documentation)    || [];
+    const docScores = (rag && rag.documentation_scores) || [];
+    const hasRag    = ddlList.length || sqList.length || docList.length;
+
+    if (hasRag) {
+      if (ddlList.length) {
+        html += `<div class="rag-section">
+          <div class="rag-section-title">📦 RAG — 검색된 DDL (스키마) <span class="rag-count">${ddlList.length}개</span></div>`;
+        ddlList.forEach((ddl, i) => {
+          const dist    = ddlScores[i];
+          const tbl     = extractTableName(ddl);
+          const label   = tbl ? `테이블: ${tbl}` : `DDL #${i + 1}`;
+          const why     = whySelected(dist, ddlList.length);
+          const lowRel  = dist !== undefined && dist > 1.0;
+          const modalId = `ragddl_${i}`;
+          html += `<div class="rag-item" style="${lowRel ? 'opacity:0.55' : ''}">
+            <div class="rag-item-label">
+              ${label} ${scoreBadge(dist)}
+              <button class="rag-expand-btn" onclick="openModal('${modalId}', '${escHtml(label)}')">전체보기</button>
+            </div>
+            <div style="font-size:0.7rem;color:#718096;margin-bottom:4px;">${why}</div>
+            <div class="rag-item-content" id="${modalId}">${escHtml(ddl)}</div>
+          </div>`;
+        });
+        html += `</div>`;
+      }
+
+      if (sqList.length) {
+        html += `<div class="rag-section">
+          <div class="rag-section-title">💬 RAG — 유사 질문 예시 <span class="rag-count">${sqList.length}개</span></div>`;
+        sqList.forEach((item, i) => {
+          const dist    = sqScores[i];
+          const q       = (typeof item === "object" ? item.question : "") || "";
+          const s       = (typeof item === "object" ? item.sql      : "") || (typeof item === "string" ? item : "");
+          const text    = (q ? "Q: " + q + "\n" : "") + (s ? "SQL: " + s : "");
+          const why     = whySelected(dist, sqList.length);
+          const lowRel  = dist !== undefined && dist > 1.0;
+          const modalId = `ragsq_${i}`;
+          html += `<div class="rag-item" style="${lowRel ? 'opacity:0.55' : ''}">
+            <div class="rag-item-label">
+              유사 예시 #${i + 1} ${scoreBadge(dist)}
+              <button class="rag-expand-btn" onclick="openModal('${modalId}', '유사 예시 #${i + 1}')">전체보기</button>
+            </div>
+            <div style="font-size:0.7rem;color:#718096;margin-bottom:4px;">${why}</div>
+            <div class="rag-item-content" id="${modalId}">${escHtml(text || JSON.stringify(item))}</div>
+          </div>`;
+        });
+        html += `</div>`;
+      }
+
+      if (docList.length) {
+        html += `<div class="rag-section">
+          <div class="rag-section-title">📄 RAG — 검색된 문서 <span class="rag-count">${docList.length}개</span></div>`;
+        docList.forEach((doc, i) => {
+          const dist    = docScores[i];
+          const why     = whySelected(dist, docList.length);
+          const lowRel  = dist !== undefined && dist > 1.0;
+          const modalId = `ragdoc_${i}`;
+          html += `<div class="rag-item" style="${lowRel ? 'opacity:0.55' : ''}">
+            <div class="rag-item-label">
+              문서 #${i + 1} ${scoreBadge(dist)}
+              <button class="rag-expand-btn" onclick="openModal('${modalId}', '문서 #${i + 1}')">전체보기</button>
+            </div>
+            <div style="font-size:0.7rem;color:#718096;margin-bottom:4px;">${why}</div>
+            <div class="rag-item-content" id="${modalId}">${escHtml(doc)}</div>
+          </div>`;
+        });
+        html += `</div>`;
+      }
+
+      html += `<div class="history-divider">RAG 검색 완료 → LLM 프롬프트 구성 → 추론</div>`;
+    }
+
+    // ── LLM 대화 이력 ──
+    const ROLE_LABELS = {
+      system:    { label: "SYSTEM",    cls: "msg-role-system"    },
+      user:      { label: "USER",      cls: "msg-role-user"      },
+      assistant: { label: "ASSISTANT", cls: "msg-role-assistant" },
+    };
+
+    history.forEach((msg, idx) => {
+      const isFinal  = msg.is_final;
+      const roleInfo = isFinal
+        ? { label: "ASSISTANT (최종 SQL)", cls: "msg-role-final" }
+        : (ROLE_LABELS[msg.role] || { label: msg.role.toUpperCase(), cls: "msg-role-user" });
+
+      const isLong  = msg.content.length > 400;
+      const contentId = `hcontent_${idx}`;
+      const modalId   = `hmodal_${idx}`;
+
+      html += `
+        <div class="msg-item">
+          <div class="msg-header ${roleInfo.cls}">
+            <span>${roleInfo.label}</span>
+            <span style="opacity:0.5;font-weight:400;margin-left:auto">${msg.content.length} chars</span>
+            <button class="rag-expand-btn" onclick="openModal('${modalId}', '${roleInfo.label}')">전체보기</button>
+          </div>
+          <div class="msg-content ${isLong ? 'collapsed' : ''}" id="${contentId}">${escHtml(msg.content)}</div>
+          <div style="display:none" id="${modalId}">${escHtml(msg.content)}</div>
+          ${isLong ? `<button class="expand-btn" onclick="expandMsg('${contentId}', this)">▼ 더 보기</button>` : ""}
+        </div>`;
+    });
+
+    body.innerHTML = html;
+    // 기본 열림 상태
+    body.classList.add("open");
+    toggle.classList.add("open");
+    panel.classList.add("visible");
+  }
+
+  function expandMsg(id, btn) {
+    const el = document.getElementById(id);
+    el.classList.remove("collapsed");
+    btn.style.display = "none";
+  }
+
+  function openModal(srcId, title) {
+    const src = document.getElementById(srcId);
+    if (!src) return;
+    document.getElementById("expandModalTitle").textContent = title || "전체 내용";
+    document.getElementById("expandModalContent").textContent = src.textContent;
+    document.getElementById("expandModal").classList.add("open");
+  }
+  function closeModal() {
+    document.getElementById("expandModal").classList.remove("open");
+  }
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+  function escHtml(str) {
+    return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  // Enter 키로 제출
+  questionEl.addEventListener("keydown", e => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) generate();
+  });
+</script>
+</body>
+</html>

@@ -1,1 +1,13 @@
 .DS_Store
+.env
+
+# 가상환경
+.venv/
+
+# ChromaDB 벡터 저장소 (재생성 가능)
+.vanna_chroma/
+.vanna_chroma_per_db/
+
+# 대용량 데이터
+llm/mini_dev_data/minidev/
+llm/mini_dev_data/*.zip
