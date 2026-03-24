@@ -1,8 +1,11 @@
 # 가상환경
 .venv/
 
-# 대용량 데이터 (SQLite DB, zip)
-llm/
+# 대용량 DB 3개 제외 (각각 250MB~571MB)
+llm/mini_dev_data/minidev/MINIDEV/dev_databases/european_football_2/
+llm/mini_dev_data/minidev/MINIDEV/dev_databases/codebase_community/
+llm/mini_dev_data/minidev/MINIDEV/dev_databases/card_games/
+llm/mini_dev_data/*.zip
 
 # Bird-SQL 원본 학습/평가 파일
 finetuning/

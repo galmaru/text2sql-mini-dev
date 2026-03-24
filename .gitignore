@@ -11,3 +11,4 @@
 # 대용량 데이터
 llm/mini_dev_data/minidev/
 llm/mini_dev_data/*.zip
+.vercel

@@ -15,6 +15,10 @@ sys.path.insert(0, str(ROOT))
 # Vercel 환경: ChromaDB는 /tmp(쓰기 가능)에 복사해야 함
 VERCEL = os.environ.get("VERCEL", "")
 if VERCEL:
+    # ChromaDB가 홈 디렉토리에 텔레메트리/설정 파일을 쓰려다 errno 30 발생 방지
+    os.environ["HOME"] = "/tmp"
+    os.environ["ANONYMIZED_TELEMETRY"] = "false"
+
     src = ROOT / ".vanna_chroma_per_db"
     dst = Path("/tmp/.vanna_chroma_per_db")
     if src.exists() and not dst.exists():

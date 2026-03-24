@@ -27,10 +27,7 @@ CHROMA_ROOT = Path(_chroma_override) if _chroma_override else SCRIPT_DIR / ".van
 
 DB_LIST = [
     "california_schools",
-    "card_games",
-    "codebase_community",
     "debit_card_specializing",
-    "european_football_2",
     "financial",
     "formula_1",
     "student_club",
