@@ -5,6 +5,7 @@
 llm/mini_dev_data/minidev/MINIDEV/dev_databases/european_football_2/
 llm/mini_dev_data/minidev/MINIDEV/dev_databases/codebase_community/
 llm/mini_dev_data/minidev/MINIDEV/dev_databases/card_games/
+llm/mini_dev_data/minidev/MINIDEV/dev_databases/financial/
 llm/mini_dev_data/*.zip
 
 # Bird-SQL 원본 학습/평가 파일
