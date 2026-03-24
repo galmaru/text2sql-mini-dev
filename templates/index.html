@@ -495,6 +495,100 @@
       user-select: none;
     }
     .chip:hover { background: #4a5568; color: #e2e8f0; border-color: #667eea; }
+
+    /* ─── 질문 히스토리 ─── */
+    .qhist-panel {
+      background: #1a1d27;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+    .qhist-toggle {
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      color: #a0aec0;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .qhist-toggle:hover { background: #1e2433; }
+    .qhist-toggle .left { display: flex; align-items: center; gap: 8px; }
+    .qhist-toggle .arrow { transition: transform 0.2s; font-size: 0.75rem; }
+    .qhist-toggle.open .arrow { transform: rotate(180deg); }
+
+    .qhist-body { display: none; }
+    .qhist-body.open { display: block; }
+
+    .qhist-empty {
+      padding: 16px 20px;
+      font-size: 0.82rem;
+      color: #4a5568;
+      font-style: italic;
+    }
+    .qhist-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 20px;
+      border-top: 1px solid #1e2433;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .qhist-item:hover { background: #1e2433; }
+    .qhist-item-main { flex: 1; min-width: 0; }
+    .qhist-question {
+      font-size: 0.875rem;
+      color: #e2e8f0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .qhist-meta {
+      font-size: 0.72rem;
+      color: #718096;
+      margin-top: 3px;
+      display: flex;
+      gap: 8px;
+    }
+    .qhist-db-badge {
+      background: #2d3748;
+      color: #a0aec0;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 0.68rem;
+    }
+    .qhist-del {
+      background: none;
+      border: none;
+      color: #4a5568;
+      font-size: 1rem;
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .qhist-del:hover { color: #fc8181; }
+    .qhist-clear {
+      display: block;
+      width: 100%;
+      background: none;
+      border: none;
+      border-top: 1px solid #2d3748;
+      padding: 10px 20px;
+      color: #718096;
+      font-size: 0.75rem;
+      cursor: pointer;
+      text-align: right;
+    }
+    .qhist-clear:hover { color: #fc8181; background: #1e2433; }
   </style>
 </head>
 <body>
@@ -532,6 +626,19 @@
       <div class="examples-label">예제 질문</div>
       <div id="exampleChips"></div>
     </div>
+  </div>
+
+  <!-- 질문 히스토리 패널 -->
+  <div class="qhist-panel" id="qhistPanel">
+    <button class="qhist-toggle" id="qhistToggle" onclick="toggleQhist()">
+      <span class="left">
+        <span style="width:8px;height:8px;border-radius:50%;background:#76e4f7;display:inline-block"></span>
+        질문 히스토리
+        <span id="qhistCount" style="background:#2d4a52;color:#76e4f7;border-radius:10px;padding:1px 7px;font-size:0.7rem;font-weight:600"></span>
+      </span>
+      <span class="arrow">▼</span>
+    </button>
+    <div class="qhist-body" id="qhistBody"></div>
   </div>
 
   <!-- SQL 패널 -->
@@ -811,6 +918,90 @@
   dbSelect.addEventListener("change", updateExamples);
   updateExamples();
 
+  // ─── 질문 히스토리 ────────────────────────────────────────────────────────
+  const QHIST_KEY  = "text2sql_qhist";
+  const QHIST_MAX  = 50;
+
+  function qhistLoad() {
+    try { return JSON.parse(localStorage.getItem(QHIST_KEY) || "[]"); }
+    catch { return []; }
+  }
+  function qhistSave(list) {
+    localStorage.setItem(QHIST_KEY, JSON.stringify(list));
+  }
+  function qhistAdd(question, db_id, sql) {
+    const list = qhistLoad();
+    // 동일 DB + 질문 중복 제거
+    const filtered = list.filter(h => !(h.db_id === db_id && h.question === question));
+    filtered.unshift({
+      id: Date.now(),
+      question,
+      db_id,
+      sql,
+      ts: new Date().toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }),
+    });
+    qhistSave(filtered.slice(0, QHIST_MAX));
+    renderQhist();
+  }
+  function qhistDelete(id) {
+    qhistSave(qhistLoad().filter(h => h.id !== id));
+    renderQhist();
+  }
+  function qhistClear() {
+    if (!confirm("질문 히스토리를 모두 삭제할까요?")) return;
+    qhistSave([]);
+    renderQhist();
+  }
+  function qhistRestore(question, db_id) {
+    questionEl.value = question;
+    dbSelect.value   = db_id;
+    updateExamples();
+    questionEl.focus();
+    // 패널 닫기
+    document.getElementById("qhistBody").classList.remove("open");
+    document.getElementById("qhistToggle").classList.remove("open");
+  }
+
+  function toggleQhist() {
+    const body   = document.getElementById("qhistBody");
+    const toggle = document.getElementById("qhistToggle");
+    const isOpen = body.classList.contains("open");
+    body.classList.toggle("open", !isOpen);
+    toggle.classList.toggle("open", !isOpen);
+  }
+
+  function renderQhist() {
+    const list   = qhistLoad();
+    const body   = document.getElementById("qhistBody");
+    const count  = document.getElementById("qhistCount");
+    count.textContent = list.length ? list.length : "";
+
+    if (!list.length) {
+      body.innerHTML = `<div class="qhist-empty">아직 질문 이력이 없습니다.</div>`;
+      return;
+    }
+
+    let html = "";
+    list.forEach(h => {
+      html += `
+        <div class="qhist-item" onclick="qhistRestore(${JSON.stringify(h.question)}, ${JSON.stringify(h.db_id)})">
+          <div class="qhist-item-main">
+            <div class="qhist-question">${escHtml(h.question)}</div>
+            <div class="qhist-meta">
+              <span class="qhist-db-badge">${escHtml(h.db_id)}</span>
+              <span>${h.ts}</span>
+            </div>
+          </div>
+          <button class="qhist-del" title="삭제" onclick="event.stopPropagation(); qhistDelete(${h.id})">×</button>
+        </div>`;
+    });
+    html += `<button class="qhist-clear" onclick="qhistClear()">전체 삭제</button>`;
+    body.innerHTML = html;
+  }
+
+  // 초기 렌더링
+  renderQhist();
+
   // ─── SQL 생성 ─────────────────────────────────────────────────────────────
   async function generate() {
     const question = questionEl.value.trim();
@@ -832,10 +1023,12 @@
       const data = await res.json();
 
       if (data.error) {
-        // SQL 생성 불가 메시지는 안내로 표시 (SQL 패널 숨김)
         showInfoMessage(data.error);
         return;
       }
+
+      // 히스토리 저장 (SQL 생성 성공 시)
+      qhistAdd(question, db_id, data.sql);
 
       showSql(data.sql);
       showResult(data.result, data.exec_error);
