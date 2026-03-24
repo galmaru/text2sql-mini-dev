@@ -1,0 +1,15 @@
+# 가상환경
+.venv/
+
+# 대용량 데이터 (SQLite DB, zip)
+llm/
+
+# Bird-SQL 원본 학습/평가 파일
+finetuning/
+
+# 기타
+materials/
+*.jsonl
+vanna_test_results.json
+test_*.py
+.DS_Store

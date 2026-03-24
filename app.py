@@ -166,16 +166,18 @@ def init_vanna_per_db():
         print("ERROR: OPENAI_API_KEY 환경변수가 필요합니다.")
         sys.exit(1)
 
-    # JSONL에서 DB별 스키마 수집
+    # JSONL에서 DB별 스키마 수집 (파일 없으면 건너뜀 — Vercel 환경 등)
     db_schemas: dict[str, str] = {}
-    with open(DATA_FILE) as f:
-        for line in f:
-            item = json.loads(line)
-            db_id = item["db_id"]
-            if db_id not in db_schemas:
-                db_schemas[db_id] = item["schema"]
-
-    print(f"총 {len(db_schemas)}개 DB 초기화 중...\n")
+    if DATA_FILE.exists():
+        with open(DATA_FILE) as f:
+            for line in f:
+                item = json.loads(line)
+                db_id = item["db_id"]
+                if db_id not in db_schemas:
+                    db_schemas[db_id] = item["schema"]
+        print(f"총 {len(db_schemas)}개 DB 초기화 중...\n")
+    else:
+        print("DATA_FILE 없음 — 사전 학습된 ChromaDB만 사용\n")
 
     for db_id in DB_LIST:
         chroma_path = CHROMA_ROOT / db_id
