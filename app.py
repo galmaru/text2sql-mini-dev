@@ -255,7 +255,8 @@ def generate():
     try:
         sql = vn.generate_sql(question)
     except Exception as e:
-        return jsonify({"error": f"SQL 생성 실패: {e}"}), 500
+        import traceback
+        return jsonify({"error": f"SQL 생성 실패: {e}", "traceback": traceback.format_exc()}), 500
 
     sql_keywords = ("select", "insert", "update", "delete", "with", "create", "drop", "pragma")
     if not sql or not sql.strip().lower().startswith(sql_keywords):
