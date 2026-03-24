@@ -158,7 +158,7 @@ def make_vanna(db_id: str, api_key: str) -> BirdVanna:
 
 def init_vanna_per_db():
     """DB별로 독립된 ChromaDB에 스키마 학습"""
-    api_key = os.environ.get("OPENAI_API_KEY")
+    api_key = (os.environ.get("OPENAI_API_KEY") or "").strip()
     if not api_key:
         print("ERROR: OPENAI_API_KEY 환경변수가 필요합니다.")
         sys.exit(1)
